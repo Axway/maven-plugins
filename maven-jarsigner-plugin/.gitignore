@@ -1,0 +1,40 @@
+ # Temporary files
+ tmp/
+ *~
+ *.bak
+ *.tmp
+ 
+ # Binary files
+ bin/
+ *.class
+ *.jar
+ *.zip
+ 
+ # Maven output folder
+ target/
+ 
+ # Maven release plugin
+ pom.xml.next
+ pom.xml.releaseBackup
+ pom.xml.tag
+ release.properties
+ 
+ # Maven use latest version
+ pom.xml.versionsBackup
+ 
+ # Eclipse JDT files
+ .settings/
+ .classpath
+ .factorypath
+ .metadata
+ .project
+ 
+ # Eclipse external tool builders
+ .externalToolBuilders/
+ 
+ # Eclipse local launch configurations
+ *.launch
+ 
+ # IntelliJ IDEA
+ *.iml
+ .idea
