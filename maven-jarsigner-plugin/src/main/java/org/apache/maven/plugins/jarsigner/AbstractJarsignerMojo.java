@@ -263,6 +263,23 @@ public abstract class AbstractJarsignerMojo
     @Component( hint = "mng-4384" )
     private SecDispatcher securityDispatcher;
 
+    /**
+     * @since 1.4
+     *
+     * How many times to try to sign or verify a jar (assuming each attempt is a failure).
+     *
+     * This option may be desirable if you are using a Time Stamp Authority,
+     * and your network conditions cause intermittent failures.
+     *
+     * The default is "1" for one attempt.
+     *
+     * "0" and <0 we be treated as 1 (because using "skip" is accepted and encouraged,
+     * and an infinite retry loop seems undesirable).
+     */
+     @Parameter( property = "jarsigner.maxtries", defaultValue = "1" )
+     private int maxtries;
+ 
+
     public final void execute()
         throws MojoExecutionException
     {
@@ -570,7 +587,20 @@ public abstract class AbstractJarsignerMojo
 
             Commandline commandLine = result.getCommandline();
 
-            int resultCode = result.getExitCode();
+            int resultCode = 0;
+            int attempt = 0;
+
+       //attempt at least once ("skip" should be used if you want to skip)
+       do
+       {
+            attempt++;
+            resultCode = result.getExitCode();
+            if ( resultCode != 0 )
+            {
+               getLog().warn( "failed attempt (" + attempt + " of " + maxtries + ") with result (" + resultCode + "):  " + getCommandlineInfo( commandLine ) );
+                                                                                                                  }
+                                                                                                             }
+       while ( attempt <= maxtries );
 
             if ( resultCode != 0 )
             {
