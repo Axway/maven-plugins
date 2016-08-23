@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.apache.maven.archiver.MavenArchiveConfiguration;
@@ -66,8 +67,6 @@ import org.codehaus.plexus.archiver.manager.ArchiverManager;
 public abstract class AbstractWarMojo
     extends AbstractMojo
 {
-    private static final String[] EMPTY_STRING_ARRAY = {};
-
     private static final String META_INF = "META-INF";
 
     private static final String WEB_INF = "WEB-INF";
@@ -91,7 +90,7 @@ public abstract class AbstractWarMojo
      *
      * @since 2.0.1
      */
-    @Parameter( property = "archiveClasses", defaultValue = "false" )
+    @Parameter( defaultValue = "false" )
     private boolean archiveClasses;
 
     /**
@@ -99,7 +98,7 @@ public abstract class AbstractWarMojo
      *
      * @since 2.3
      */
-    @Parameter( property = "resourceEncoding", defaultValue = "${project.build.sourceEncoding}" )
+    @Parameter( defaultValue = "${project.build.sourceEncoding}" )
     private String resourceEncoding;
 
     /**
@@ -133,9 +132,41 @@ public abstract class AbstractWarMojo
     private List<String> filters;
 
     /**
+     * <p>
+     * Set of delimiters for expressions to filter within the resources. These delimiters are specified in the form
+     * 'beginToken*endToken'. If no '*' is given, the delimiter is assumed to be the same for start and end.
+     * </p>
+     * <p>
+     * So, the default filtering delimiters might be specified as:
+     * </p>
+     * 
+     * <pre>
+     * &lt;delimiters&gt;
+     *   &lt;delimiter&gt;${*}&lt;/delimiter&gt;
+     *   &lt;delimiter&gt;@&lt;/delimiter&gt;
+     * &lt;/delimiters&gt;
+     * </pre>
+     * <p>
+     * Since the '@' delimiter is the same on both ends, we don't need to specify '@*@' (though we can).
+     * </p>
+     *
+     * @since 3.0.0
+     */
+    @Parameter
+    private LinkedHashSet<String> delimiters;
+
+    /**
+     * Use default delimiters in addition to custom delimiters, if any.
+     *
+     * @since 3.0.0
+     */
+    @Parameter( defaultValue = "true" )
+    private boolean useDefaultDelimiters;
+
+    /**
      * The path to the web.xml file to use.
      */
-    @Parameter( property = "maven.war.webxml" )
+    @Parameter
     private File webXml;
 
     /**
@@ -143,7 +174,7 @@ public abstract class AbstractWarMojo
      * different servlet containers. Apache Tomcat uses a configuration file named context.xml. The file will be copied
      * to the META-INF directory.
      */
-    @Parameter( property = "maven.war.containerConfigXML" )
+    @Parameter
     private File containerConfigXML;
 
     /**
@@ -175,8 +206,8 @@ public abstract class AbstractWarMojo
      *
      * @since 2.1-alpha-1
      */
-    @Parameter( property = "useCache", defaultValue = "false" )
-    private boolean useCache = false;
+    @Parameter( defaultValue = "false" )
+    private boolean useCache;
 
     /**
      */
@@ -202,13 +233,13 @@ public abstract class AbstractWarMojo
     /**
      * The comma separated list of tokens to include when copying the content of the warSourceDirectory.
      */
-    @Parameter( alias = "includes", defaultValue = "**" )
+    @Parameter( defaultValue = "**" )
     private String warSourceIncludes;
 
     /**
      * The comma separated list of tokens to exclude when copying the content of the warSourceDirectory.
      */
-    @Parameter( alias = "excludes" )
+    @Parameter
     private String warSourceExcludes;
 
     /**
@@ -251,8 +282,8 @@ public abstract class AbstractWarMojo
      *
      * @since 2.1-alpha-2
      */
-    @Parameter( property = "maven.war.filteringDeploymentDescriptors", defaultValue = "false" )
-    private boolean filteringDeploymentDescriptors = false;
+    @Parameter( defaultValue = "false" )
+    private boolean filteringDeploymentDescriptors;
 
     /**
      * To escape interpolated values with Windows path <code>c:\foo\bar</code> will be replaced with
@@ -260,8 +291,8 @@ public abstract class AbstractWarMojo
      *
      * @since 2.1-alpha-2
      */
-    @Parameter( property = "maven.war.escapedBackslashesInFilePath", defaultValue = "false" )
-    private boolean escapedBackslashesInFilePath = false;
+    @Parameter( defaultValue = "false" )
+    private boolean escapedBackslashesInFilePath;
 
     /**
      * Expression preceded with this String won't be interpolated. <code>\${foo}</code> will be replaced with
@@ -269,7 +300,7 @@ public abstract class AbstractWarMojo
      *
      * @since 2.1-beta-1
      */
-    @Parameter( property = "maven.war.escapeString" )
+    @Parameter
     protected String escapeString;
 
     /**
@@ -292,15 +323,15 @@ public abstract class AbstractWarMojo
      *
      * @since 2.4
      */
-    @Parameter( property = "maven.war.supportMultiLineFiltering", defaultValue = "false" )
-    private boolean supportMultiLineFiltering = false;
+    @Parameter( defaultValue = "false" )
+    private boolean supportMultiLineFiltering;
 
     /**
      * use jvmChmod rather that cli chmod and forking process
      *
      * @since 2.4
      */
-    @Parameter( property = "maven.war.useJvmChmod", defaultValue = "true" )
+    @Parameter( defaultValue = "true" )
     private boolean useJvmChmod;
 
     /**
@@ -381,8 +412,7 @@ public abstract class AbstractWarMojo
     }
 
     /**
-     * Builds the webapp for the specified project with the new packaging task thingy
-     * <p/>
+     * Builds the webapp for the specified project with the new packaging task thingy.
      * Classes, libraries and tld files are copied to the <tt>webappDirectory</tt> during this phase.
      *
      * @param mavenProject the maven project
@@ -422,6 +452,15 @@ public abstract class AbstractWarMojo
             mavenResourcesExecution.setEscapeString( escapeString );
             mavenResourcesExecution.setSupportMultiLineFiltering( supportMultiLineFiltering );
             mavenResourcesExecution.setMavenProject( mavenProject );
+
+            // if these are NOT set, just use the defaults, which are '${*}' and '@'.
+            mavenResourcesExecution.setDelimiters( delimiters, useDefaultDelimiters );
+
+            if ( nonFilteredFileExtensions != null )
+            {
+                mavenResourcesExecution.setNonFilteredFileExtensions( nonFilteredFileExtensions );
+            }
+            
             if ( filters == null )
             {
                 filters = getProject().getBuild().getFilters();

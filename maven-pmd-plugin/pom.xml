@@ -82,11 +82,11 @@ under the License.
   <properties>
     <mavenVersion>2.2.1</mavenVersion>
     <doxiaVersion>1.4</doxiaVersion>
-    <!-- Because PMD 5.1+ requires Java 6 -->
-    <javaVersion>1.6</javaVersion>
+    <!-- Because PMD 5.4+ requires Java 7 -->
+    <javaVersion>1.7</javaVersion>
     <maven.compiler.source>${javaVersion}</maven.compiler.source>
     <maven.compiler.target>${javaVersion}</maven.compiler.target>
-    <pmdVersion>5.3.5</pmdVersion>
+    <pmdVersion>5.5.1</pmdVersion>
     <sitePluginVersion>3.4</sitePluginVersion>
     <projectInfoReportsPluginVersion>2.8</projectInfoReportsPluginVersion>
   </properties>
@@ -180,7 +180,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
-      <version>3.0.21</version>
+      <version>3.0.24</version>
     </dependency>
 
     <!-- pmd -->
@@ -234,7 +234,7 @@ under the License.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.4</version>
+      <version>2.5</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -300,13 +300,13 @@ under the License.
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java16</artifactId>
-            <version>1.1</version>
+            <artifactId>java17</artifactId>
+            <version>1.0</version>
           </signature>
         </configuration>
         <executions>
           <execution>
-            <id>check-java-1.6-compat</id>
+            <id>check-java-1.7-compat</id>
             <phase>process-classes</phase>
             <goals>
               <goal>check</goal>

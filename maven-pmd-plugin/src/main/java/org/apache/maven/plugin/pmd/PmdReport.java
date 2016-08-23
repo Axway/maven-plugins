@@ -63,7 +63,6 @@ import org.codehaus.plexus.resource.loader.FileResourceCreationException;
 import org.codehaus.plexus.resource.loader.FileResourceLoader;
 import org.codehaus.plexus.resource.loader.ResourceNotFoundException;
 import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
 
@@ -115,11 +114,14 @@ public class PmdReport
     private boolean skip;
 
     /**
-     * The PMD rulesets to use. See the <a href="http://pmd.sourceforge.net/rules/index.html">Stock Rulesets</a> for a
-     * list of some included. Defaults to the java-basic, java-imports and java-unusedcode rulesets.
+     * The PMD rulesets to use. See the
+     * <a href="http://pmd.github.io/pmd-5.5.1/pmd-java/rules/index.html">Stock Java Rulesets</a> for a
+     * list of some included. Defaults to the java-basic, java-empty, java-imports, java-unnecessary
+     * and java-unusedcode rulesets.
      */
     @Parameter
-    private String[] rulesets = new String[] { "java-basic", "java-unusedcode", "java-imports" };
+    private String[] rulesets = new String[] { "java-basic", "java-empty", "java-imports",
+            "java-unnecessary", "java-unusedcode" };
 
     /**
      * Controls whether the project's compile/test classpath should be passed to PMD to enable its type resolution
@@ -150,7 +152,7 @@ public class PmdReport
     /**
      * Source level marker used to indicate whether a RuleViolation should be suppressed. If it is not set, PMD's
      * default will be used, which is <code>NOPMD</code>. See also <a
-     * href="http://pmd.sourceforge.net/usage/suppressing.html">PMD &#x2013; Suppressing warnings</a>.
+     * href="https://pmd.github.io/latest/usage/suppressing.html">PMD &#x2013; Suppressing warnings</a>.
      *
      * @since 3.4
      */
@@ -302,20 +304,13 @@ public class PmdReport
 
         renderer = new PmdCollectingRenderer();
         PMDConfiguration pmdConfiguration = getPMDConfiguration();
-        RuleContext ruleContext = new RuleContext();
 
-        RuleSetFactory ruleSetFactory = new RuleSetFactory();
-        ruleSetFactory.setMinimumPriority( RulePriority.valueOf( this.minimumPriority ) );
-
-        // Workaround for https://sourceforge.net/p/pmd/bugs/1155/: add a dummy ruleset.
-        String[] presentRulesets = rulesets.length > 0 ? rulesets : new String[] { "/rulesets/dummy.xml" };
-
-        String[] sets = new String[presentRulesets.length];
+        String[] sets = new String[rulesets.length];
         try
         {
-            for ( int idx = 0; idx < presentRulesets.length; idx++ )
+            for ( int idx = 0; idx < rulesets.length; idx++ )
             {
-                String set = presentRulesets[idx];
+                String set = rulesets[idx];
                 getLog().debug( "Preparing ruleset: " + set );
                 RuleSetReferenceId id = new RuleSetReferenceId( set );
                 File ruleset = locator.getResourceAsFile( id.getRuleSetFileName(), getLocationTemp( set ) );
@@ -363,31 +358,19 @@ public class PmdReport
         }
         pmdConfiguration.setSourceEncoding( encoding );
 
-        List<DataSource> dataSources = new ArrayList<DataSource>( filesToProcess.size() );
+        List<DataSource> dataSources = new ArrayList<>( filesToProcess.size() );
         for ( File f : filesToProcess.keySet() )
         {
             dataSources.add( new FileDataSource( f ) );
         }
 
-        try
+        if ( sets.length > 0 )
         {
-            getLog().debug( "Executing PMD..." );
-            PMD.processFiles( pmdConfiguration, ruleSetFactory, dataSources, ruleContext,
-                              Arrays.<Renderer>asList( renderer ) );
-
-            if ( getLog().isDebugEnabled() )
-            {
-                getLog().debug( "PMD finished. Found " + renderer.getViolations().size() + " violations." );
-            }
+            processFilesWithPMD( pmdConfiguration, dataSources );
         }
-        catch ( Exception e )
+        else
         {
-            String message = "Failure executing PMD: " + e.getLocalizedMessage();
-            if ( !skipPmdError )
-            {
-                throw new MavenReportException( message, e );
-            }
-            getLog().warn( message, e );
+            getLog().debug( "Skipping PMD execution as no rulesets are defined." );
         }
 
         if ( renderer.hasErrors() )
@@ -411,23 +394,43 @@ public class PmdReport
 
         if ( benchmark )
         {
-            PrintStream benchmarkFileStream = null;
-            try
+            try ( PrintStream benchmarkFileStream = new PrintStream( benchmarkOutputFilename ) )
             {
-                benchmarkFileStream = new PrintStream( benchmarkOutputFilename );
                 ( new TextReport() ).generate( Benchmarker.values(), benchmarkFileStream );
             }
             catch ( FileNotFoundException fnfe )
             {
                 getLog().error( "Unable to generate benchmark file: " + benchmarkOutputFilename, fnfe );
             }
-            finally
+        }
+    }
+
+    private void processFilesWithPMD( PMDConfiguration pmdConfiguration, List<DataSource> dataSources )
+            throws MavenReportException
+    {
+        RuleSetFactory ruleSetFactory = new RuleSetFactory();
+        ruleSetFactory.setMinimumPriority( RulePriority.valueOf( this.minimumPriority ) );
+        RuleContext ruleContext = new RuleContext();
+
+        try
+        {
+            getLog().debug( "Executing PMD..." );
+            PMD.processFiles( pmdConfiguration, ruleSetFactory, dataSources, ruleContext,
+                              Arrays.<Renderer>asList( renderer ) );
+
+            if ( getLog().isDebugEnabled() )
             {
-                if ( null != benchmarkFileStream )
-                {
-                    benchmarkFileStream.close();
-                }
+                getLog().debug( "PMD finished. Found " + renderer.getViolations().size() + " violations." );
             }
+        }
+        catch ( Exception e )
+        {
+            String message = "Failure executing PMD: " + e.getLocalizedMessage();
+            if ( !skipPmdError )
+            {
+                throw new MavenReportException( message, e );
+            }
+            getLog().warn( message, e );
         }
     }
 
@@ -502,20 +505,15 @@ public class PmdReport
             return;
         }
 
-        Writer writer = null;
-        FileOutputStream tStream = null;
-        try
+        File targetFile = new File( targetDirectory, "pmd." + format );
+        try ( Writer writer = new OutputStreamWriter( new FileOutputStream( targetFile ), getOutputEncoding() ) )
         {
             targetDirectory.mkdirs();
-            File targetFile = new File( targetDirectory, "pmd." + format );
-            tStream = new FileOutputStream( targetFile );
-            writer = new OutputStreamWriter( tStream, getOutputEncoding() );
 
             r.setWriter( writer );
             r.start();
             r.renderFileReport( report );
             r.end();
-            writer.close();
 
             if ( includeXmlInSite )
             {
@@ -527,11 +525,6 @@ public class PmdReport
         catch ( IOException ioe )
         {
             throw new MavenReportException( ioe.getMessage(), ioe );
-        }
-        finally
-        {
-            IOUtil.close( writer );
-            IOUtil.close( tStream );
         }
     }
 

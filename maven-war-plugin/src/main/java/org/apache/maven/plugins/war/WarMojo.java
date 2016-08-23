@@ -63,7 +63,7 @@ public class WarMojo
     /**
      * The name of the generated WAR.
      */
-    @Parameter( defaultValue = "${project.build.finalName}", property = "war.warName", required = true )
+    @Parameter( defaultValue = "${project.build.finalName}", required = true, readonly = true )
     private String warName;
 
     /**
@@ -108,8 +108,8 @@ public class WarMojo
      * Whether this is the main artifact being built. Set to <code>false</code> if you don't want to install or deploy
      * it to the local repository instead of the default one in an execution.
      */
-    @Parameter( property = "primaryArtifact", defaultValue = "true" )
-    private boolean primaryArtifact = true;
+    @Parameter( defaultValue = "true" )
+    private boolean primaryArtifact;
 
     /**
      * Whether or not to fail the build if the <code>web.xml</code> file is missing. Set to <code>false</code> if you
@@ -118,8 +118,8 @@ public class WarMojo
      *
      * @since 2.1-alpha-2
      */
-    @Parameter( property = "failOnMissingWebXml", defaultValue = "true" )
-    private boolean failOnMissingWebXml = true;
+    @Parameter( defaultValue = "true" )
+    private boolean failOnMissingWebXml;
 
     /**
      * Whether classes (that is the content of the WEB-INF/classes directory) should be attached to the project as an
@@ -144,7 +144,7 @@ public class WarMojo
      * @since 2.1-alpha-2
      */
     @Parameter( defaultValue = "false" )
-    private boolean attachClasses = false;
+    private boolean attachClasses;
 
     /**
      * The classifier to use for the attached classes artifact.
@@ -152,7 +152,7 @@ public class WarMojo
      * @since 2.1-alpha-2
      */
     @Parameter( defaultValue = "classes" )
-    private String classesClassifier = "classes";
+    private String classesClassifier;
 
     /**
      * You can skip the execution of the plugin if you need to. Its use is NOT RECOMMENDED, but quite convenient on

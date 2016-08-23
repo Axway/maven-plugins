@@ -57,7 +57,7 @@ public class TestResourcesMojo
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
      * @since 2.6
      */
-    @Parameter( property = "maven.test.skip" )
+    @Parameter( property = "maven.test.skip", defaultValue = "false" )
     private boolean skip;
 
     /**
@@ -76,21 +76,25 @@ public class TestResourcesMojo
         }
     }
 
+    /** {@inheritDoc} */
     public File getOutputDirectory()
     {
         return outputDirectory;
     }
 
+    /** {@inheritDoc} */
     public void setOutputDirectory( File outputDirectory )
     {
         this.outputDirectory = outputDirectory;
     }
 
+    /** {@inheritDoc} */
     public List<Resource> getResources()
     {
         return resources;
     }
 
+    /** {@inheritDoc} */
     public void setResources( List<Resource> resources )
     {
         this.resources = resources;

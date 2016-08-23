@@ -40,7 +40,7 @@ import org.codehaus.plexus.util.IOUtil;
 public class DefaultConfigurationMavenProjectStub
     extends MavenProjectStub
 {
-    private List<ReportPlugin> reportPlugins = new ArrayList<ReportPlugin>();
+    private List<ReportPlugin> reportPlugins = new ArrayList<>();
 
     private Build build;
 
@@ -54,6 +54,8 @@ public class DefaultConfigurationMavenProjectStub
         {
             reader = new FileReader( new File( getBasedir() + "/src/test/resources/unit/default-configuration/default-configuration-plugin-config.xml" ) );
             model = pomReader.read( reader );
+            reader.close();
+            reader = null;
             setModel( model );
         }
         catch ( Exception e )
@@ -87,7 +89,7 @@ public class DefaultConfigurationMavenProjectStub
                                .getPlugins() );
 
         String basedir = getBasedir().getAbsolutePath();
-        List<String> compileSourceRoots = new ArrayList<String>();
+        List<String> compileSourceRoots = new ArrayList<>();
         compileSourceRoots.add( basedir + "/src/test/resources/unit/default-configuration/def/configuration" );
         setCompileSourceRoots( compileSourceRoots );
 
