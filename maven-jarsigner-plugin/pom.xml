@@ -66,6 +66,7 @@ under the License.
 
   <properties>
     <mavenVersion>3.0</mavenVersion>
+    <checkstyle.violation.ignore>LineLength,RedundantThrows,NewlineAtEndOfFile,ParameterNumber,MethodLength,FileLength,LineLength</checkstyle.violation.ignore>
   </properties>
 
   <dependencies>
