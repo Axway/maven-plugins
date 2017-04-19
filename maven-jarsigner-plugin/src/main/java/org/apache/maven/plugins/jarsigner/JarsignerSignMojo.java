@@ -31,6 +31,9 @@ import org.apache.maven.shared.utils.cli.Commandline;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Signs a project artifact and attachments using jarsigner.
@@ -72,6 +75,34 @@ public class JarsignerSignMojo
      */
     @Parameter( property = "jarsigner.tsa" )
     private String tsa;
+
+    /**
+     * Optional list of alternativeTsas. Together with tsa and
+     * jarsigner.maxtries you can specify multiple tsas to attempt to sign yout
+     * jar with timestamp.
+     * 
+     * e.g. To cycle once through URL1, URL2 and URL3, you must:
+     * 
+     * <pre>
+     * {@code
+     * 
+     * <tsa>URL1</tsa>
+     * <alternativeTsas>
+     *     <alternativeTsa>URL2</alternativeTsa>
+     *     <alternativeTsa>URL3</alternativeTsa>
+     * <alternativeTsas>
+     * <maxtries>3</maxtries>
+     * }
+     * </pre>
+     * 
+     * To cycle twice through all URLs, maxtries should be set to 6. If maxtries
+     * is not set, only the first tsa (or alternativeTsa) is used once.
+     */
+    @Parameter( property = "jarsigner.alternativeTsas" )
+    private String[] alternativeTsas;
+
+    private volatile int currentTsa = 0;
+    private volatile List<String> tsaList = null;
 
     /**
      * See <a href="http://java.sun.com/javase/6/docs/technotes/tools/windows/jarsigner.html#Options">options</a>.
@@ -119,12 +150,42 @@ public class JarsignerSignMojo
     {
         JarSignerSignRequest request = new JarSignerSignRequest();
         request.setSigfile( sigfile );
-        request.setTsaLocation( tsa );
+
+        if ( tsaList == null )
+        {
+            initTsaList();
+        }
+        if ( tsaList.isEmpty() )
+        {
+            request.setTsaLocation( tsa );
+        }
+        else
+        {
+            request.setTsaLocation( tsaList.get( currentTsa % tsaList.size() ) );
+            currentTsa++;
+        }
+
         request.setTsaAlias( tsacert );
 
         // Special handling for passwords through the Maven Security Dispatcher
         request.setKeypass( decrypt( keypass ) );
         return request;
+    }
+
+    private synchronized void initTsaList()
+    {
+        if ( tsaList == null )
+        {
+            tsaList = new ArrayList<String>();
+            if ( tsa != null )
+            {
+                tsaList.add( tsa );
+            }
+            if ( alternativeTsas != null )
+            {
+                tsaList.addAll( Arrays.asList( alternativeTsas ) );
+            }
+        }
     }
 
 }

@@ -512,6 +512,18 @@ public abstract class AbstractJarsignerMojo
             getLog().debug( getMessage( "processing", archive ) );
         }
 
+        int resultCode = 0;
+        int attempt = 0;
+        
+        Commandline commandLine;
+
+        try
+        {
+        
+   //attempt at least once ("skip" should be used if you want to skip)
+   do
+   {
+        
         JarSignerRequest request = createRequest( archive );
         request.setVerbose( verbose );
         request.setAlias( alias );
@@ -581,26 +593,24 @@ public abstract class AbstractJarsignerMojo
         // Special handling for passwords through the Maven Security Dispatcher
         request.setStorepass( decrypt( storepass ) );
 
-        try
-        {
             JavaToolResult result = jarSigner.execute( request );
 
-            Commandline commandLine = result.getCommandline();
+            commandLine = result.getCommandline();
 
-            int resultCode = 0;
-            int attempt = 0;
-
-       //attempt at least once ("skip" should be used if you want to skip)
-       do
-       {
             attempt++;
             resultCode = result.getExitCode();
             if ( resultCode != 0 )
             {
-               getLog().warn( "failed attempt (" + attempt + " of " + maxtries + ") with result (" + resultCode + "):  " + getCommandlineInfo( commandLine ) );
-                                                                                                                  }
-                                                                                                             }
-       while ( attempt <= maxtries );
+               String message = "failed attempt (" + attempt + " of " + maxtries + ") with result (" + resultCode + "):  "
+                       + getCommandlineInfo( commandLine );
+               if ( result.getExecutionException() != null ) 
+               {
+                   message = message + " and exception " + result.getExecutionException().getMessage();
+               }
+               getLog().warn( message );
+            }
+       }
+       while ( attempt < maxtries && resultCode != 0 );
 
             if ( resultCode != 0 )
             {
