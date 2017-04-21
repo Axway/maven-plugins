@@ -185,6 +185,10 @@ public class JarsignerSignMojo
             {
                 tsaList.addAll( Arrays.asList( alternativeTsas ) );
             }
+            if ( !tsaList.isEmpty() )
+            {
+                setNumberOfTsas( tsaList.size() );
+            }
         }
     }
 

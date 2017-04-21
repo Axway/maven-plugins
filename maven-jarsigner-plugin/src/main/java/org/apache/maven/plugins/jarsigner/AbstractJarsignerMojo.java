@@ -279,6 +279,7 @@ public abstract class AbstractJarsignerMojo
      @Parameter( property = "jarsigner.maxtries", defaultValue = "1" )
      private int maxtries;
  
+     private int numberOfTsas = 1;
 
     public final void execute()
         throws MojoExecutionException
@@ -610,7 +611,7 @@ public abstract class AbstractJarsignerMojo
                getLog().warn( message );
             }
        }
-       while ( attempt < maxtries && resultCode != 0 );
+       while ( resultCode != 0 && attempt < maxtries * numberOfTsas );
 
             if ( resultCode != 0 )
             {
@@ -692,5 +693,10 @@ public abstract class AbstractJarsignerMojo
         }
 
         return tc;
+    }
+    
+    protected void setNumberOfTsas( final int numberofTsas ) 
+    {
+        this.numberOfTsas = numberofTsas;
     }
 }
